@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          package-manager-cache: false
       - run: npm install
       - run: npm run check:cloudflare
       - run: npm run build:cloudflare
@@ -27,7 +27,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          package-manager-cache: false
       - run: npm install
       - run: npx wrangler deploy
         env:
