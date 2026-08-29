@@ -5,38 +5,37 @@ import { checkAndConsumeGeneration } from '../../../lib/usage'
 function fallback(input) {
   const topic = String(input.topic || '').trim()
   const platform = input.platform || 'Instagram'
-  const audience = input.audience || 'your audience'
+  const audience = input.audience || input.brand?.audience || 'your audience'
   const objective = input.objective || 'Grow engagement'
-  const concepts = [
-    { title: 'The overlooked insight', angle: 'Educational', hook: `${topic} gets easier when you stop starting with features and start with the outcome.`, caption: `Most conversations about ${topic} start in the wrong place.\n\nStart with what ${audience} is trying to accomplish, where the friction sits, and what a better outcome looks like.\n\nThat shift makes the message more useful and gives your brand a clearer point of view.`, cta: 'Save this framework for your next planning session.', visual: `Premium editorial campaign showing ${topic} as a credible solution, with refined composition and clear subject focus.`, score: 9.4 },
-    { title: 'The myth worth challenging', angle: 'Contrarian', hook: `The popular advice about ${topic} sounds sensible. It can still lead teams in the wrong direction.`, caption: `The default playbook for ${topic} is not always the best one.\n\nAsk whether the approach actually moves ${audience} toward the outcome they care about.\n\nThat small change in thinking can make the strategy clearer and more differentiated.`, cta: 'Share your take on the conventional advice.', visual: `Bold conceptual campaign contrasting a crowded conventional path with a clear differentiated route around ${topic}.`, score: 9.1 },
-    { title: 'The three-step playbook', angle: 'Problem / Solution', hook: `Before you act on ${topic}, run this three-part check.`, caption: `01 — Is the problem specific enough to matter?\n02 — Is the value obvious to the customer?\n03 — Is the next action easy to understand?\n\nIf one answer is unclear, tighten the message before adding more content.`, cta: 'Save this checklist.', visual: `Minimal premium checklist composition for ${topic}, generous negative space and modern brand styling.`, score: 9.6 },
-    { title: 'The real-world story', angle: 'Storytelling', hook: `A simple moment around ${topic} can reveal what your audience actually needs.`, caption: `Good content earns attention by naming a problem people already recognize, showing a better path, and making the next step feel possible.\n\nThe strongest brand stories often start with everyday friction rather than a product claim.`, cta: 'Tell us where your audience feels the most friction.', visual: `Human-centered professional storytelling scene showing a realistic person solving a ${topic} problem, cinematic but credible.`, score: 9.0 },
-    { title: 'Proof before promise', angle: 'Social proof', hook: `If you want people to believe in ${topic}, show the change—not just the claim.`, caption: `Strong ${topic} content does not need bigger promises. It needs clearer proof.\n\nShow the before. Explain the decision. Make the result concrete. Then give people enough context to judge whether the approach fits them.`, cta: 'Invite the audience to share a result or lesson.', visual: `Premium case-study composition for ${topic}, showing before-and-after context with restrained commercial design.`, score: 9.3 }
-  ]
-  return { strategy: `${objective} campaign for ${audience} on ${platform}, built around five distinct creative mechanisms.`, concepts }
+  const brand = input.brand || {}
+  const voice = brand.voice || 'clear, confident, useful and human'
+  const positioning = brand.positioning || 'a credible brand with a differentiated point of view'
+  const formats = ['Educational', 'Founder POV', 'Storytelling', 'Product', 'Proof']
+  const concepts = formats.map((format, i) => ({ title: `${format}: ${topic}`, angle: format, hook: `${topic} becomes more valuable when ${audience} can see the outcome before the pitch.`, caption: `${format === 'Founder POV' ? 'A useful perspective for anyone working on' : format === 'Storytelling' ? 'Here is the story behind a better way to think about' : format === 'Proof' ? 'The strongest case for' : format === 'Product' ? 'If you are evaluating' : 'A practical way to approach'} ${topic}.\n\nFocus on the problem, make the value concrete, and give ${audience} a reason to care now.\n\nFor ${brand.name || 'our brand'}, the goal is not to sound louder. It is to be more useful, recognizable and consistent with our positioning: ${positioning}.`, cta: i === 4 ? 'Ask your audience what proof they need to see.' : 'Save this and use it for your next post.', visual: `Professional ${format.toLowerCase()} creative for ${topic}, aligned to a ${voice} brand voice, designed for ${platform}.`, score: 9.2 - i * 0.1 }))
+  return { strategy: `${objective} campaign for ${audience} on ${platform}, expressed through five distinct creative formats and guided by the brand positioning.`, brandGuidance: `Voice: ${voice}. Positioning: ${positioning}.`, concepts }
 }
 
 async function generateWithGemini(input) {
   const key = process.env.GEMINI_API_KEY
   if (!key) return null
   const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
-  const prompt = `You are a senior brand strategist. Create exactly 5 distinct social campaign concepts as JSON. Topic: ${input.topic}. Audience: ${input.audience || 'general audience'}. Platform: ${input.platform || 'Instagram'}. Objective: ${input.objective || 'Grow engagement'}. Return {"strategy":"...","concepts":[{"title":"...","angle":"...","hook":"...","caption":"...","cta":"...","visual":"...","score":9.4}]} with no markdown.`
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) })
+  const brand = input.brand || {}
+  const prompt = `You are the senior creative strategist for a professional brand content platform. Create exactly 5 genuinely different social content concepts, not five rewrites of the same post. Each must use a different format from Educational, Founder POV, Storytelling, Product, Proof, Community, Contrarian, UGC, Carousel, or Short-form Video. Respect the selected platform and objective. Treat the brand profile as binding creative direction. Brand name: ${brand.name || 'Not provided'}. Description: ${brand.description || 'Not provided'}. Audience: ${brand.audience || input.audience || 'Not provided'}. Voice: ${brand.voice || 'clear and human'}. Positioning: ${brand.positioning || 'Not provided'}. Products/services: ${brand.products || 'Not provided'}. Topic: ${input.topic}. Platform: ${input.platform || 'Instagram'}. Objective: ${input.objective || 'Grow engagement'}. Return only valid JSON with {"strategy":"...","brandGuidance":"...","concepts":[{"title":"...","angle":"...","hook":"...","caption":"...","cta":"...","visual":"...","score":9.4}]}. Captions must sound publishable, specific and non-generic. Visual must describe an executable creative direction, not claim an image was generated.`
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.9 } }) })
   if (!response.ok) throw new Error('Gemini request failed')
   const data = await response.json()
   const text = data.candidates?.[0]?.content?.parts?.map(x => x.text || '').join('') || ''
-  return JSON.parse(text.replace(/^```json\s*/,'').replace(/```$/,'').trim())
+  return JSON.parse(text.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim())
 }
 
 export async function POST(request) {
   try {
     const auth = await requireUser(request)
     if (auth.response) return auth.response
-    const usage = await checkAndConsumeGeneration(auth.user)
-    if (!usage.allowed) return NextResponse.json({ error: 'Daily generation limit reached.', used: usage.used, limit: usage.limit }, { status: 429 })
     const input = await request.json()
     if (!String(input.topic || '').trim()) return NextResponse.json({ error: 'Topic is required.' }, { status: 400 })
+    const usage = await checkAndConsumeGeneration(auth.user)
+    if (!usage.allowed) return NextResponse.json({ error: 'Daily generation limit reached.', used: usage.used, limit: usage.limit }, { status: 429 })
     let result
     try { result = await generateWithGemini(input) } catch { result = null }
     result = result || fallback(input)
