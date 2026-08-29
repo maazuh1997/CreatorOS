@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import { requireUser } from '../../../lib/auth'
+import { checkAndConsumeGeneration } from '../../../lib/usage'
 
 function fallback(input) {
   const topic = String(input.topic || '').trim()
@@ -29,11 +31,15 @@ async function generateWithGemini(input) {
 
 export async function POST(request) {
   try {
+    const auth = await requireUser(request)
+    if (auth.response) return auth.response
+    const usage = await checkAndConsumeGeneration(auth.user)
+    if (!usage.allowed) return NextResponse.json({ error: 'Daily generation limit reached.', used: usage.used, limit: usage.limit }, { status: 429 })
     const input = await request.json()
     if (!String(input.topic || '').trim()) return NextResponse.json({ error: 'Topic is required.' }, { status: 400 })
     let result
     try { result = await generateWithGemini(input) } catch { result = null }
     result = result || fallback(input)
-    return NextResponse.json(result)
+    return NextResponse.json({ ...result, usage })
   } catch (error) { return NextResponse.json({ error: error.message || 'Generation failed' }, { status: 500 }) }
 }
