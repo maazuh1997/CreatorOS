@@ -3,7 +3,7 @@ services:
     name: creatoros
     runtime: node
     plan: free
-    buildCommand: npm ci && npm run build
+    buildCommand: npm install && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
