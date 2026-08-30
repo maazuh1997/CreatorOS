@@ -11,6 +11,7 @@ export default function MediaStudio({ concept, platform }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState(null)
+  const [saved, setSaved] = useState(null)
 
   async function search() {
     if (!query.trim()) return
@@ -25,8 +26,9 @@ export default function MediaStudio({ concept, platform }) {
     } catch (e) { setError(e.message) } finally { setLoading(false) }
   }
 
-  function changeType(next) { setType(next); setItems([]); setError('') }
+  function changeType(next) { setType(next); setItems([]); setError(''); setSelected(null) }
   function mediaUrl(item) { return type === 'photo' ? item.src?.large2x || item.src?.large || item.src?.original : item.files?.find(file => file.width >= 720)?.link || item.files?.[0]?.link }
+  function selectAsset(item) { setSaved(item.id); setSelected(item); setTimeout(() => setSaved(null), 1800) }
 
   return <>
     <div className="media-studio">
@@ -38,9 +40,9 @@ export default function MediaStudio({ concept, platform }) {
       {error && <div className="media-error">{error}</div>}
       {!items.length && !loading && !error && <div className="media-empty"><span>✦</span><div><strong>Find a visual for this concept</strong><p>Search Pexels for professional photography or video.</p></div><button onClick={search}>Find {type === 'photo' ? 'photos' : 'videos'} →</button></div>}
       {loading && <div className="media-loading"><i></i><i></i><i></i></div>}
-      {items.length > 0 && <div className={`media-grid ${type}`}>{items.map(item => <button className="media-item" key={item.id} onClick={() => setSelected(item)}>{type === 'photo' ? <img src={item.src?.large || item.src?.medium || item.src?.original} alt={item.alt || concept?.title || ''} /> : <div className="video-thumb"><img src={item.image} alt="" /><span>▶</span></div>}<div className="media-meta"><span>{type === 'photo' ? item.photographer : `${item.duration || 0}s video`}</span><b>Preview</b></div></button>)}</div>}
+      {items.length > 0 && <div className={`media-grid ${type}`}>{items.map(item => <button className={`media-item ${saved === item.id ? 'selected' : ''}`} key={item.id} onClick={() => setSelected(item)}>{type === 'photo' ? <img src={item.src?.large || item.src?.medium || item.src?.original} alt={item.alt || concept?.title || ''} /> : <div className="video-thumb"><img src={item.image} alt="" /><span>▶</span></div>}<div className="media-meta"><span>{type === 'photo' ? item.photographer : `${item.duration || 0}s video`}</span><b>{saved === item.id ? 'Selected ✓' : 'Preview'}</b></div></button>)}</div>}
       {items.length > 0 && <button className="media-refine" onClick={search}>Refresh results</button>}
     </div>
-    {selected && <div className="media-lightbox" onClick={() => setSelected(null)}><div className="media-preview" onClick={e => e.stopPropagation()}><div className="preview-top"><span>{type === 'photo' ? 'PHOTO PREVIEW' : 'VIDEO PREVIEW'}</span><button onClick={() => setSelected(null)}>×</button></div>{type === 'photo' ? <img className="preview-image" src={mediaUrl(selected)} alt={selected.alt || concept?.title || ''} /> : <video className="preview-video" src={mediaUrl(selected)} poster={selected.image} controls autoPlay playsInline /> }<div className="preview-footer"><div><strong>{type === 'photo' ? selected.photographer : `${selected.duration || 0}s Pexels video`}</strong><span>Selected for {platform}</span></div><a href={selected.url} target="_blank" rel="noreferrer">Open source ↗</a></div></div></div>}
+    {selected && <div className="media-lightbox" onClick={() => setSelected(null)}><div className="media-preview" onClick={e => e.stopPropagation()}><div className="preview-top"><span>{type === 'photo' ? 'PHOTO PREVIEW' : 'VIDEO PREVIEW'}</span><button onClick={() => setSelected(null)}>×</button></div>{type === 'photo' ? <img className="preview-image" src={mediaUrl(selected)} alt={selected.alt || concept?.title || ''} /> : <video className="preview-video" src={mediaUrl(selected)} poster={selected.image} controls autoPlay playsInline /> }<div className="preview-footer"><div><strong>{type === 'photo' ? selected.photographer : `${selected.duration || 0}s Pexels video`}</strong><span>Selected for {platform}</span></div><div className="preview-actions"><button onClick={() => selectAsset(selected)}>{saved === selected.id ? 'Selected ✓' : 'Use this asset'}</button><a href={mediaUrl(selected)} download target="_blank" rel="noreferrer">Download</a><a href={selected.url} target="_blank" rel="noreferrer">Source ↗</a></div></div></div></div>}
   </>
 }
