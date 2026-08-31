@@ -28,7 +28,7 @@ export default function MediaStudio({ concept, platform }) {
 
   function changeType(next) { setType(next); setItems([]); setError(''); setSelected(null) }
   function mediaUrl(item) { return type === 'photo' ? item.src?.large2x || item.src?.large || item.src?.original : item.files?.find(file => file.width >= 720)?.link || item.files?.[0]?.link }
-  function selectAsset(item) { setSaved(item.id); setSelected(item); setTimeout(() => setSaved(null), 1800) }
+  function selectAsset(item) { const asset = { ...item, type, mediaUrl: mediaUrl(item), selectedFor: platform, selectedAt: new Date().toISOString() }; setSaved(item.id); setSelected(item); sessionStorage.setItem('creatoros_selected_media', JSON.stringify(asset)); setTimeout(() => setSaved(null), 1800) }
 
   return <>
     <div className="media-studio">
